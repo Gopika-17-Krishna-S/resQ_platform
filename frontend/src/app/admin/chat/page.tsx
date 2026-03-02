@@ -126,10 +126,13 @@ export default function AdminChatPage() {
             {/* Sidebar - Volunteers List */}
             <div className="w-80 bg-dark-800 border-r border-gray-700 flex flex-col">
                 <div className="p-4 border-b border-gray-700">
-                    <h1 className="text-xl font-bold">💬 Admin Chat</h1>
+                    <div className="flex items-center space-x-3 mb-1">
+                        <img src="/logo.png" alt="resQ Logo" className="w-8 h-8 rounded-lg object-cover" />
+                        <h1 className="text-xl font-bold">Admin Chat</h1>
+                    </div>
                     <button
                         onClick={() => router.push('/admin')}
-                        className="text-sm text-gray-400 hover:text-white mt-1"
+                        className="text-sm text-gray-400 hover:text-white"
                     >
                         ← Back to Dashboard
                     </button>
@@ -195,8 +198,8 @@ export default function AdminChatPage() {
                                         >
                                             <div
                                                 className={`max-w-[70%] rounded-lg px-4 py-2 ${isMe
-                                                        ? 'bg-primary text-white rounded-tr-none'
-                                                        : 'bg-dark-700 text-gray-200 rounded-tl-none'
+                                                    ? 'bg-primary text-white rounded-tr-none'
+                                                    : 'bg-dark-700 text-gray-200 rounded-tl-none'
                                                     }`}
                                             >
                                                 <p>{msg.content}</p>

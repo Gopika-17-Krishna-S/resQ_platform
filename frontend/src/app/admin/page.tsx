@@ -269,9 +269,12 @@ export default function AdminDashboard() {
             {/* Header */}
             <header className="glass border-b border-dark-700 sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold">resQ Command Center</h1>
-                        <p className="text-sm text-gray-400">Admin Dashboard</p>
+                    <div className="flex items-center space-x-3">
+                        <img src="/logo.png" alt="resQ Logo" className="w-10 h-10 rounded-lg object-cover" />
+                        <div>
+                            <h1 className="text-2xl font-bold">Command Center</h1>
+                            <p className="text-sm text-gray-400">Admin Dashboard</p>
+                        </div>
                     </div>
                     <div className="flex items-center space-x-4">
                         <div className="text-right">

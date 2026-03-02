@@ -76,11 +76,8 @@ export default function Home() {
             {/* Navbar */}
             <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-dark-700">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-10 h-10 bg-danger rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-xl">R</span>
-                        </div>
-                        <span className="text-2xl font-bold text-white">resQ</span>
+                    <div className="flex items-center">
+                        <img src="/logo.png" alt="resQ Logo" className="w-10 h-10 rounded-lg object-cover" />
                     </div>
                     <button className="btn btn-danger px-8">
                         EMERGENCY SOS

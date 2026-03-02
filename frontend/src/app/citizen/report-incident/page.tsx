@@ -77,7 +77,8 @@ export default function ReportIncident() {
             {/* Header */}
             <header className="glass border-b border-dark-700 sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <div>
+                    <div className="flex items-center space-x-3">
+                        <img src="/logo.png" alt="resQ Logo" className="w-10 h-10 rounded-lg object-cover" />
                         <h1 className="text-2xl font-bold">Report Incident</h1>
                     </div>
                     <button onClick={() => router.push('/citizen')} className="btn btn-secondary">
