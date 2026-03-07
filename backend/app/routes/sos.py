@@ -92,7 +92,7 @@ def get_sos_request(
 
 
 @router.put("/{sos_id}")
-def update_sos_request(
+async def update_sos_request(
     sos_id: int,
     sos_data: dict,
     current_user: User = Depends(get_current_admin),
@@ -126,11 +126,16 @@ def update_sos_request(
     db.commit()
     db.refresh(sos)
     
-    return SOSRequestResponse.model_validate(sos)
+    # Emit socket event
+    from app.socketio_server import emit_sos_updated
+    sos_response = SOSRequestResponse.model_validate(sos)
+    await emit_sos_updated(sos_response.model_dump(mode='json'))
+    
+    return sos_response
 
 
 @router.put("/{sos_id}/status")
-def update_sos_status(
+async def update_sos_status(
     sos_id: int,
     status_data: dict,
     current_user: User = Depends(get_current_admin),
@@ -156,6 +161,11 @@ def update_sos_status(
     
     db.commit()
     db.refresh(sos)
+    
+    # Emit socket event
+    from app.socketio_server import emit_sos_updated
+    sos_response = SOSRequestResponse.model_validate(sos)
+    await emit_sos_updated(sos_response.model_dump(mode='json'))
     
     return {"message": "Status updated successfully", "status": sos.status.value}
 

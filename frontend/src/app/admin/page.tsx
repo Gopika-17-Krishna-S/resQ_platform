@@ -66,23 +66,67 @@ export default function AdminDashboard() {
             }));
         };
 
-        const handleTaskUpdated = () => {
-            // Task status changed, reload data to be safe or update specific item
+        const handleTaskUpdated = (task: any) => {
+            console.log('Task updated:', task);
+            // We still reload data to update all stats and relationships accurately
+            loadData();
+        };
+
+        const handleTaskAssigned = (task: any) => {
+            console.log('Task assigned:', task);
+            loadData();
+        };
+
+        const handleSOSUpdated = (sos: any) => {
+            console.log('SOS updated:', sos);
+            setSosList(prev => prev.map(item => item.id === sos.id ? sos : item));
+        };
+
+        const handleIncidentUpdated = (incident: any) => {
+            console.log('Incident updated:', incident);
+            setIncidents(prev => prev.map(item => item.id === incident.id ? incident : item));
+        };
+
+        const handleVolunteerStatusChanged = (data: any) => {
+            console.log('Volunteer status changed:', data);
+            setVolunteers(prev => prev.map(v => v.id === data.id ? { ...v, volunteer_status: data.volunteer_status } : v));
+            // Update stats for active volunteers
             loadData();
         };
 
         socketService.on('sos_created', handleSOSCreated);
         socketService.on('incident_created', handleIncidentCreated);
+        socketService.on('sos_updated', handleSOSUpdated);
+        socketService.on('incident_updated', handleIncidentUpdated);
         socketService.on('task_updated', handleTaskUpdated);
+        socketService.on('task_assigned', handleTaskAssigned);
+        socketService.on('volunteer_status_changed', handleVolunteerStatusChanged);
 
         loadData();
 
         return () => {
             socketService.off('sos_created', handleSOSCreated);
             socketService.off('incident_created', handleIncidentCreated);
+            socketService.off('sos_updated', handleSOSUpdated);
+            socketService.off('incident_updated', handleIncidentUpdated);
             socketService.off('task_updated', handleTaskUpdated);
+            socketService.off('task_assigned', handleTaskAssigned);
+            socketService.off('volunteer_status_changed', handleVolunteerStatusChanged);
         };
     }, [isInitialized, isAuthenticated, user, router]);
+
+    const getStatusBadgeClass = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'pending': return 'badge-danger';
+            case 'assigned': return 'badge-warning';
+            case 'accepted': return 'badge-info';
+            case 'responding': return 'badge-info';
+            case 'on_site': return 'badge-primary';
+            case 'completed':
+            case 'resolved': return 'badge-success';
+            default: return 'badge-secondary';
+        }
+    };
 
     const loadData = async () => {
         try {
@@ -373,7 +417,9 @@ export default function AdminDashboard() {
                                     <div key={sos.id} className="bg-dark-700 rounded-lg p-4">
                                         <div className="flex justify-between items-start mb-2">
                                             <h4 className="font-semibold text-danger">SOS Emergency</h4>
-                                            <span className="badge badge-danger">{sos.status}</span>
+                                            <span className={`badge ${getStatusBadgeClass(sos.status)}`}>
+                                                {sos.status}
+                                            </span>
                                         </div>
                                         <p className="text-sm text-gray-400 mb-2">{sos.address}</p>
                                         <p className="text-xs text-gray-500">By: {sos.citizen?.full_name}</p>
@@ -408,8 +454,7 @@ export default function AdminDashboard() {
                                     <div key={incident.id} className="bg-dark-700 rounded-lg p-4">
                                         <div className="flex justify-between items-start mb-2">
                                             <h4 className="font-semibold">{incident.title}</h4>
-                                            <span className={`badge ${incident.status === 'pending' ? 'badge-warning' : 'badge-info'
-                                                }`}>
+                                            <span className={`badge ${getStatusBadgeClass(incident.status)}`}>
                                                 {incident.status}
                                             </span>
                                         </div>

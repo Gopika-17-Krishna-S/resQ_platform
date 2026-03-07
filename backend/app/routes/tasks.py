@@ -6,7 +6,12 @@ from app.database import get_db
 from app.models import Task, User, SOSRequest, IncidentReport, TaskStatus, UserRole, VolunteerStatus
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
 from app.auth import get_current_user, get_current_admin, get_current_volunteer
-from app.socketio_server import emit_task_assigned, emit_task_updated
+from app.socketio_server import (
+    emit_task_assigned, 
+    emit_task_updated,
+    emit_sos_updated,
+    emit_incident_updated
+)
 import math
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
@@ -91,6 +96,17 @@ async def create_task(
     task_response = TaskResponse.model_validate(task)
     await emit_task_assigned(task_response.model_dump(mode='json'), task.volunteer_id)
     
+    # Also emit specific SOS/Incident updates for real-time frontend reflects
+    if task.sos_request:
+        from app.schemas import SOSRequestResponse
+        sos_resp = SOSRequestResponse.model_validate(task.sos_request)
+        await emit_sos_updated(sos_resp.model_dump(mode='json'))
+    
+    if task.incident_report:
+        from app.schemas import IncidentReportResponse
+        inc_resp = IncidentReportResponse.model_validate(task.incident_report)
+        await emit_incident_updated(inc_resp.model_dump(mode='json'))
+
     return task_response
 
 
@@ -290,16 +306,19 @@ async def update_task(
     db.commit()
     db.refresh(task)
     
-    # Emit socket event
-    task_response = TaskResponse.model_validate(task)
-    user_ids = [task.volunteer_id]
-    if task.sos_request:
-        user_ids.append(task.sos_request.citizen_id)
-    if task.incident_report:
-        user_ids.append(task.incident_report.citizen_id)
-        
     await emit_task_updated(task_response.model_dump(mode='json'), user_ids)
     
+    # Also emit specific SOS/Incident updates for real-time frontend reflects
+    if task.sos_request:
+        from app.schemas import SOSRequestResponse
+        sos_resp = SOSRequestResponse.model_validate(task.sos_request)
+        await emit_sos_updated(sos_resp.model_dump(mode='json'))
+    
+    if task.incident_report:
+        from app.schemas import IncidentReportResponse
+        inc_resp = IncidentReportResponse.model_validate(task.incident_report)
+        await emit_incident_updated(inc_resp.model_dump(mode='json'))
+
     return task_response
 
 

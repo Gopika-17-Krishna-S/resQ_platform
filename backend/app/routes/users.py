@@ -67,7 +67,7 @@ def update_user_location(
 
 
 @router.put("/me/volunteer-status", response_model=UserResponse)
-def update_volunteer_status(
+async def update_volunteer_status(
     status_update: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -90,6 +90,14 @@ def update_volunteer_status(
     current_user.volunteer_status = VolunteerStatus(new_status)
     db.commit()
     db.refresh(current_user)
+    
+    # Emit socket event
+    from app.socketio_server import emit_volunteer_status_change
+    await emit_volunteer_status_change({
+        "id": current_user.id,
+        "full_name": current_user.full_name,
+        "volunteer_status": current_user.volunteer_status.value
+    })
     
     return UserResponse.model_validate(current_user)
 

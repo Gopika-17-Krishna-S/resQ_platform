@@ -102,6 +102,18 @@ async def emit_incident_created(incident_data: dict):
     print(f"Emitted incident created: {incident_data}")
 
 
+async def emit_sos_updated(sos_data: dict):
+    """Emit SOS updated event to all connected users (mostly admins)"""
+    await sio.emit('sos_updated', sos_data)
+    print(f"Emitted SOS updated: {sos_data}")
+
+
+async def emit_incident_updated(incident_data: dict):
+    """Emit incident updated event to all connected users (mostly admins)"""
+    await sio.emit('incident_updated', incident_data)
+    print(f"Emitted incident updated: {incident_data}")
+
+
 async def emit_task_assigned(task_data: dict, volunteer_id: int):
     """Emit task assigned event to volunteer and admins"""
     # Notify volunteer

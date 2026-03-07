@@ -96,7 +96,7 @@ def get_incident(
 
 
 @router.put("/{incident_id}", response_model=IncidentReportResponse)
-def update_incident(
+async def update_incident(
     incident_id: int,
     update_data: IncidentReportUpdate,
     current_user: User = Depends(get_current_admin),
@@ -123,7 +123,12 @@ def update_incident(
     db.commit()
     db.refresh(incident)
     
-    return IncidentReportResponse.model_validate(incident)
+    # Emit socket event
+    from app.socketio_server import emit_incident_updated
+    incident_response = IncidentReportResponse.model_validate(incident)
+    await emit_incident_updated(incident_response.model_dump(mode='json'))
+    
+    return incident_response
 
 
 @router.delete("/{incident_id}")
