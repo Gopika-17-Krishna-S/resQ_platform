@@ -120,12 +120,15 @@ def get_tasks(
     
     query = db.query(Task)
     
+    # Use .value for robust comparison
+    user_role = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+    
     # Volunteers only see their own tasks
-    if current_user.role == UserRole.VOLUNTEER:
+    if user_role == UserRole.VOLUNTEER.value:
         query = query.filter(Task.volunteer_id == current_user.id)
     
     # Citizens see tasks related to their SOS/incidents
-    if current_user.role == UserRole.CITIZEN:
+    if user_role == UserRole.CITIZEN.value:
         sos_ids = [s.id for s in current_user.sos_requests]
         incident_ids = [i.id for i in current_user.incident_reports]
         
@@ -231,14 +234,17 @@ def get_task(
             detail="Task not found"
         )
     
+    # Use .value for robust comparison
+    user_role = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+    
     # Check permissions
-    if current_user.role == UserRole.VOLUNTEER and task.volunteer_id != current_user.id:
+    if user_role == UserRole.VOLUNTEER.value and task.volunteer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this task"
         )
     
-    if current_user.role == UserRole.CITIZEN:
+    if user_role == UserRole.CITIZEN.value:
         # Check if task is related to user's SOS or incident
         is_authorized = False
         if task.sos_request and task.sos_request.citizen_id == current_user.id:
@@ -271,15 +277,18 @@ async def update_task(
             detail="Task not found"
         )
     
+    # Use .value for robust comparison
+    user_role = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+    
     # Volunteers can only update their own tasks
-    if current_user.role == UserRole.VOLUNTEER and task.volunteer_id != current_user.id:
+    if user_role == UserRole.VOLUNTEER.value and task.volunteer_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this task"
         )
     
     # Citizens cannot update tasks
-    if current_user.role == UserRole.CITIZEN:
+    if user_role == UserRole.CITIZEN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Citizens cannot update tasks"
@@ -305,6 +314,14 @@ async def update_task(
     
     db.commit()
     db.refresh(task)
+    
+    # Prepare response and notification list
+    task_response = TaskResponse.model_validate(task)
+    user_ids = [task.volunteer_id]
+    if task.sos_request:
+        user_ids.append(task.sos_request.citizen_id)
+    if task.incident_report:
+        user_ids.append(task.incident_report.citizen_id)
     
     await emit_task_updated(task_response.model_dump(mode='json'), user_ids)
     

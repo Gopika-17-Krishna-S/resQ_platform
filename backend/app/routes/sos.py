@@ -49,7 +49,8 @@ def get_all_sos_requests(
     query = db.query(SOSRequest)
     
     # Citizens can only see their own SOS requests
-    if current_user.role.value == "citizen":
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role == "citizen":
         query = query.filter(SOSRequest.citizen_id == current_user.id)
     
     if status_filter:
@@ -82,7 +83,8 @@ def get_sos_request(
         )
     
     # Citizens can only view their own SOS
-    if current_user.role.value == "citizen" and sos.citizen_id != current_user.id:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role == "citizen" and sos.citizen_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this SOS request"
@@ -184,6 +186,20 @@ def delete_sos_request(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="SOS request not found"
         )
+    
+    # Thorough manual cleanup of all related dependencies to avoid FK errors
+    from app.models import Task, Comment, Message
+    
+    # Get all task IDs associated with this SOS request
+    task_ids = [t.id for t in db.query(Task).filter(Task.sos_request_id == sos_id).all()]
+    
+    if task_ids:
+        # Delete comments associated with these tasks
+        db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(synchronize_session=False)
+        # Delete messages associated with these tasks
+        db.query(Message).filter(Message.task_id.in_(task_ids)).delete(synchronize_session=False)
+        # Delete the tasks themselves
+        db.query(Task).filter(Task.id.in_(task_ids)).delete(synchronize_session=False)
     
     db.delete(sos)
     db.commit()

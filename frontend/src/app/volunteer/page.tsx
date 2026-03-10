@@ -130,9 +130,12 @@ export default function VolunteerDashboard() {
             alert('Task status updated successfully!');
             loadData();
             setShowTaskDetails(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update task:', error);
-            alert('Failed to update task status');
+            const status = error.response?.status;
+            const detail = error.response?.data?.detail;
+            const errorMessage = detail ? (typeof detail === 'string' ? detail : JSON.stringify(detail)) : 'Unknown error';
+            alert(`Failed to update task status${status ? ` (${status})` : ''}: ${errorMessage}`);
         }
     };
 

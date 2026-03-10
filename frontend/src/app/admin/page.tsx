@@ -290,7 +290,10 @@ export default function AdminDashboard() {
             loadData();
         } catch (error: any) {
             console.error('Delete failed:', error);
-            alert(error.response?.data?.detail || 'Failed to delete');
+            const status = error.response?.status;
+            const detail = error.response?.data?.detail;
+            const errorMessage = detail ? (typeof detail === 'string' ? detail : JSON.stringify(detail)) : 'Unknown error';
+            alert(`Delete failed${status ? ` (${status})` : ''}: ${errorMessage}`);
         }
     };
 

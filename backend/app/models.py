@@ -88,7 +88,7 @@ class SOSRequest(Base):
     
     # Relationships
     citizen = relationship("User", back_populates="sos_requests", foreign_keys=[citizen_id])
-    tasks = relationship("Task", back_populates="sos_request")
+    tasks = relationship("Task", back_populates="sos_request", cascade="all, delete-orphan")
 
 
 class IncidentReport(Base):
@@ -110,7 +110,7 @@ class IncidentReport(Base):
     
     # Relationships
     citizen = relationship("User", back_populates="incident_reports", foreign_keys=[citizen_id])
-    tasks = relationship("Task", back_populates="incident_report")
+    tasks = relationship("Task", back_populates="incident_report", cascade="all, delete-orphan")
 
 
 class Task(Base):
@@ -131,7 +131,8 @@ class Task(Base):
     volunteer = relationship("User", back_populates="assigned_tasks", foreign_keys=[volunteer_id])
     sos_request = relationship("SOSRequest", back_populates="tasks")
     incident_report = relationship("IncidentReport", back_populates="tasks")
-    comments = relationship("Comment", back_populates="task")
+    comments = relationship("Comment", back_populates="task", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="task", cascade="all, delete-orphan")
 
 
 class Message(Base):
@@ -149,6 +150,7 @@ class Message(Base):
     
     # Relationships
     sender = relationship("User", back_populates="sent_messages", foreign_keys=[sender_id])
+    task = relationship("Task", back_populates="messages")
 
 
 class Comment(Base):

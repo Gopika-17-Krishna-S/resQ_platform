@@ -38,7 +38,8 @@ def update_current_user(
     if user_update.address is not None:
         current_user.address = user_update.address
     
-    if user_update.volunteer_status is not None and current_user.role == UserRole.VOLUNTEER:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_update.volunteer_status is not None and user_role == "volunteer":
         current_user.volunteer_status = user_update.volunteer_status
     
     db.commit()
@@ -74,7 +75,8 @@ async def update_volunteer_status(
 ):
     """Update volunteer online/offline status"""
     
-    if current_user.role != UserRole.VOLUNTEER:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role != "volunteer":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only volunteers can update status"
@@ -176,7 +178,8 @@ def admin_update_user(
         )
     
     # Prevent admins from modifying other admins
-    if user.role == UserRole.ADMIN and user.id != current_user.id:
+    target_role = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
+    if target_role == "admin" and user.id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot modify other admin users"
@@ -193,7 +196,8 @@ def admin_update_user(
         user.longitude = user_update.longitude
     if user_update.address is not None:
         user.address = user_update.address
-    if user_update.volunteer_status is not None and user.role == UserRole.VOLUNTEER:
+    target_role = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
+    if user_update.volunteer_status is not None and target_role == "volunteer":
         user.volunteer_status = user_update.volunteer_status
     
     db.commit()
@@ -203,7 +207,7 @@ def admin_update_user(
 
 
 @router.delete("/{user_id}")
-def delete_user(
+async def delete_user(
     user_id: int,
     current_user: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
@@ -217,11 +221,47 @@ def delete_user(
             detail="User not found"
         )
     
-    if user.role == UserRole.ADMIN:
+    # Prevent deletion of other admins
+    user_role = str(user.role.value if hasattr(user.role, 'value') else user.role).lower()
+    if user_role == "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot delete admin users"
         )
+    
+    # Thorough manual cleanup of all related dependencies to avoid FK errors
+    from app.models import SOSRequest, IncidentReport, Task, Comment, Message
+    
+    # 1. Clean up SOS requests and their tasks
+    sos_ids = [s.id for s in db.query(SOSRequest).filter(SOSRequest.citizen_id == user_id).all()]
+    if sos_ids:
+        task_ids = [t.id for t in db.query(Task).filter(Task.sos_request_id.in_(sos_ids)).all()]
+        if task_ids:
+            db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(synchronize_session=False)
+            db.query(Message).filter(Message.task_id.in_(task_ids)).delete(synchronize_session=False)
+            db.query(Task).filter(Task.id.in_(task_ids)).delete(synchronize_session=False)
+        db.query(SOSRequest).filter(SOSRequest.id.in_(sos_ids)).delete(synchronize_session=False)
+        
+    # 2. Clean up Incident Reports and their tasks
+    incident_ids = [i.id for i in db.query(IncidentReport).filter(IncidentReport.citizen_id == user_id).all()]
+    if incident_ids:
+        task_ids = [t.id for t in db.query(Task).filter(Task.incident_report_id.in_(incident_ids)).all()]
+        if task_ids:
+            db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(synchronize_session=False)
+            db.query(Message).filter(Message.task_id.in_(task_ids)).delete(synchronize_session=False)
+            db.query(Task).filter(Task.id.in_(task_ids)).delete(synchronize_session=False)
+        db.query(IncidentReport).filter(IncidentReport.id.in_(incident_ids)).delete(synchronize_session=False)
+        
+    # 3. Clean up Tasks assigned to this user (if volunteer)
+    task_ids = [t.id for t in db.query(Task).filter(Task.volunteer_id == user_id).all()]
+    if task_ids:
+        db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(synchronize_session=False)
+        db.query(Message).filter(Message.task_id.in_(task_ids)).delete(synchronize_session=False)
+        db.query(Task).filter(Task.id.in_(task_ids)).delete(synchronize_session=False)
+        
+    # 4. Clean up any other direct links
+    db.query(Message).filter((Message.sender_id == user_id) | (Message.recipient_id == user_id)).delete(synchronize_session=False)
+    db.query(Comment).filter(Comment.author_id == user_id).delete(synchronize_session=False)
     
     db.delete(user)
     db.commit()

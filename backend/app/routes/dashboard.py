@@ -17,7 +17,9 @@ def get_dashboard_stats(
     
     stats = {}
     
-    if current_user.role == UserRole.ADMIN:
+    user_role = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+    
+    if user_role == UserRole.ADMIN.value:
         # Admin sees all stats
         stats["total_sos"] = db.query(SOSRequest).count()
         stats["total_incidents"] = db.query(IncidentReport).count()
@@ -33,7 +35,7 @@ def get_dashboard_stats(
             Task.status == TaskStatus.COMPLETED
         ).count()
     
-    elif current_user.role == UserRole.VOLUNTEER:
+    elif user_role == UserRole.VOLUNTEER.value:
         # Volunteer sees their stats
         stats["total_sos"] = db.query(SOSRequest).filter(
             SOSRequest.status != TaskStatus.COMPLETED

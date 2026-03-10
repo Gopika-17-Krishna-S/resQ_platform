@@ -38,7 +38,8 @@ def send_message(
         
         # Verify user is part of the task
         is_authorized = False
-        if current_user.role == UserRole.ADMIN:
+        user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+        if user_role == "admin":
             is_authorized = True
         elif task.volunteer_id == current_user.id:
             is_authorized = True
@@ -54,7 +55,8 @@ def send_message(
             )
     
     # Only admins can send broadcasts
-    if message_data.is_broadcast and current_user.role != UserRole.ADMIN:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if message_data.is_broadcast and user_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins can send broadcasts"
@@ -97,7 +99,8 @@ def get_messages(
         
         # Determine if user is authorized to see task messages
         is_authorized = False
-        if current_user.role == UserRole.ADMIN:
+        user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+        if user_role == "admin":
             is_authorized = True
         elif task.volunteer_id == current_user.id:
             is_authorized = True

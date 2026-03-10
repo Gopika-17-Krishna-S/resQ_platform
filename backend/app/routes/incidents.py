@@ -53,7 +53,8 @@ def get_all_incidents(
     query = db.query(IncidentReport)
     
     # Citizens can only see their own incidents
-    if current_user.role.value == "citizen":
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role == "citizen":
         query = query.filter(IncidentReport.citizen_id == current_user.id)
     
     if status_filter:
@@ -86,7 +87,8 @@ def get_incident(
         )
     
     # Citizens can only view their own incidents
-    if current_user.role.value == "citizen" and incident.citizen_id != current_user.id:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role == "citizen" and incident.citizen_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this incident"
@@ -145,6 +147,20 @@ def delete_incident(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Incident report not found"
         )
+    
+    # Thorough manual cleanup of all related dependencies to avoid FK errors
+    from app.models import Task, Comment, Message
+    
+    # Get all task IDs associated with this incident
+    task_ids = [t.id for t in db.query(Task).filter(Task.incident_report_id == incident_id).all()]
+    
+    if task_ids:
+        # Delete comments associated with these tasks
+        db.query(Comment).filter(Comment.task_id.in_(task_ids)).delete(synchronize_session=False)
+        # Delete messages associated with these tasks
+        db.query(Message).filter(Message.task_id.in_(task_ids)).delete(synchronize_session=False)
+        # Delete the tasks themselves
+        db.query(Task).filter(Task.id.in_(task_ids)).delete(synchronize_session=False)
     
     db.delete(incident)
     db.commit()

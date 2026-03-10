@@ -27,7 +27,8 @@ def create_comment(
     
     # Verify user is authorized to comment on this task
     is_authorized = False
-    if current_user.role == UserRole.ADMIN:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role == "admin":
         is_authorized = True
     elif task.volunteer_id == current_user.id:
         is_authorized = True
@@ -73,7 +74,8 @@ def get_task_comments(
     
     # Verify user is authorized to view comments
     is_authorized = False
-    if current_user.role == UserRole.ADMIN:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role == "admin":
         is_authorized = True
     elif task.volunteer_id == current_user.id:
         is_authorized = True
@@ -111,7 +113,8 @@ def delete_comment(
         )
     
     # Only comment author or admin can delete
-    if comment.author_id != current_user.id and current_user.role != UserRole.ADMIN:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if comment.author_id != current_user.id and user_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this comment"

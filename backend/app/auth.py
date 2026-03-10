@@ -97,7 +97,9 @@ async def get_current_user(
 
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     """Verify current user is admin"""
-    if current_user.role != UserRole.ADMIN:
+    # Robust role check
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -107,7 +109,8 @@ async def get_current_admin(current_user: User = Depends(get_current_user)) -> U
 
 async def get_current_volunteer(current_user: User = Depends(get_current_user)) -> User:
     """Verify current user is volunteer"""
-    if current_user.role != UserRole.VOLUNTEER:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role != "volunteer":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -117,7 +120,8 @@ async def get_current_volunteer(current_user: User = Depends(get_current_user)) 
 
 async def get_current_citizen(current_user: User = Depends(get_current_user)) -> User:
     """Verify current user is citizen"""
-    if current_user.role != UserRole.CITIZEN:
+    user_role = str(current_user.role.value if hasattr(current_user.role, 'value') else current_user.role).lower()
+    if user_role != "citizen":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
